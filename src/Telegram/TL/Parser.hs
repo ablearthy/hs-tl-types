@@ -47,7 +47,7 @@ typesHeader = () <$ between (lexeme tripleMinus) (lexeme tripleMinus) (lexeme (s
 
 data VarIdent = VarIdent (Maybe T.Text) T.Text deriving Show
 data VarIdentFull = VarIdentFull VarIdent (Maybe Word32) deriving Show
-data TypeIdent = TypeIdent T.Text | TypeHash deriving Show
+data TypeIdent = TypeIdent VarIdent | TypeHash deriving Show
 
 
 data TypeExpr 
@@ -123,7 +123,7 @@ termP = bareP <|> tExprP <|> apP
       Just x -> parensP $ TypeAp te (TypeExpr x)
 
   typeIdentP :: Parser TypeIdent
-  typeIdentP = (TypeHash <$ (char '#')) <|> (TypeIdent <$> varIdentP')
+  typeIdentP = (TypeHash <$ (char '#')) <|> (TypeIdent <$> varIdentP)
 
 typeExprP :: Parser TypeExpr 
 typeExprP = lexeme termP >>= exprP
@@ -214,7 +214,7 @@ schemaP :: Parser Schema
 schemaP = do
   constrs <- many (lexeme combinatorP)
   more <- many $ do
-    (Left <$> ((lexeme typesHeader) *> many (lexeme combinatorP))) <|> (Right <$> ((lexeme funcHeader) *> many (lexeme combinatorP)))
+    try (Left <$> ((lexeme typesHeader) *> many (lexeme combinatorP))) <|> (Right <$> ((lexeme funcHeader) *> many (lexeme combinatorP)))
   pure $ foldl' f (Schema constrs []) more
   where
     f :: Schema -> Either [Combinator] [Combinator] -> Schema
